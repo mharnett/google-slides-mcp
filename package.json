@@ -7,6 +7,7 @@
   "scripts": {
     "build": "tsc && node -e \"fs=require('fs');cp=require('child_process');sha=cp.execSync('git rev-parse --short HEAD 2>/dev/null||echo unknown').toString().trim();fs.writeFileSync('build/build-info.json',JSON.stringify({sha,builtAt:new Date().toISOString()}))\"",
     "start": "node build/index.js",
+    "test": "vitest run",
     "lint": "eslint . --ext .ts",
     "get-token": "npm run build && node build/getRefreshToken.js"
   },
@@ -29,6 +30,7 @@
     "eslint-plugin-import": "^2.29.1",
     "eslint-plugin-prettier": "^5.2.1",
     "typescript": "^5.8.3",
-    "typescript-eslint": "^8.0.0-alpha.59"
+    "typescript-eslint": "^8.0.0-alpha.59",
+    "vitest": "^4.0.18"
   }
 }
