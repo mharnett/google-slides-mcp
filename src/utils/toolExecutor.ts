@@ -1,6 +1,7 @@
 import { slides_v1 } from 'googleapis';
 import { z } from 'zod';
 import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
+import { withResilience, safeResponse, logger } from '../resilience.js';
 
 const extractErrorMessage = (err: unknown): string => {
   if (err instanceof Error) {
@@ -13,7 +14,7 @@ const extractErrorMessage = (err: unknown): string => {
 };
 
 /**
- * Executes a tool function with centralized argument parsing and error handling.
+ * Executes a tool function with centralized argument parsing, resilience, and error handling.
  *
  * @param slides - The authenticated Google Slides API client.
  * @param toolName - The name of the tool being executed.
@@ -36,9 +37,23 @@ export const executeTool = async <T>(
     }
 
     const parsedArgs = schema.parse(args);
-    return await toolFn(slides, parsedArgs);
+    const result = await withResilience(() => toolFn(slides, parsedArgs), toolName);
+
+    // Apply safe response size limiting to the content text
+    if (result?.content?.[0]?.text) {
+      try {
+        const parsed = JSON.parse(result.content[0].text);
+        const safe = safeResponse(parsed, toolName);
+        result.content[0].text = JSON.stringify(safe, null, 2);
+      } catch {
+        // Not JSON, apply safeResponse to raw text
+        result.content[0].text = safeResponse(result.content[0].text, toolName);
+      }
+    }
+
+    return result;
   } catch (error: unknown) {
-    console.error(`Error executing tool "${toolName}":`, error);
+    logger.error({ tool: toolName, error }, `Error executing tool "${toolName}"`);
 
     if (error instanceof z.ZodError) {
       const validationErrors = error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join('; ');

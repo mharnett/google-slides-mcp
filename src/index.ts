@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import { checkEnvironmentVariables } from './utils/envCheck.js';
 import { getStartupErrorMessage } from './utils/errorHandler.js';
 import { setupToolHandlers } from './serverHandlers.js';
+import { logger } from './resilience.js';
 
 // Log build fingerprint at startup
 try {
@@ -51,7 +52,7 @@ const initializeAndRunServer = async () => {
 
     setupToolHandlers(server, slides);
 
-    server.onerror = (error: Error) => console.error('[MCP Server Error]', error);
+    server.onerror = (error: Error) => logger.error({ error }, '[MCP Server Error]');
 
     process.on('SIGINT', async () => {
       console.log('Received SIGINT, shutting down server...');
@@ -66,10 +67,10 @@ const initializeAndRunServer = async () => {
 
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    console.error('Google Slides MCP server running and connected via stdio.');
+    logger.info('Google Slides MCP server running and connected via stdio.');
   } catch (error: unknown) {
     const errorMessage = getStartupErrorMessage(error);
-    console.error('Failed to start Google Slides MCP server:', errorMessage, error);
+    logger.error({ error }, `Failed to start Google Slides MCP server: ${errorMessage}`);
     process.exit(1);
   }
 };
