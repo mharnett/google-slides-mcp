@@ -1,4 +1,5 @@
 import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
+import { logger } from '../resilience.js';
 
 /**
  * Handles errors from Google API calls and converts them into McpError instances.
@@ -25,7 +26,7 @@ export const handleGoogleApiError = (error: unknown, toolName: string): McpError
   const rawErrorMessage = extractRawErrorMessage(error);
   const finalErrorMessage = `Google API Error in ${toolName}: ${rawErrorMessage}`;
 
-  console.error(`Google API Error (${toolName}):`, error);
+  logger.error({ tool: toolName, error }, `Google API Error (${toolName})`);
   return new McpError(ErrorCode.InternalError, finalErrorMessage);
 };
 

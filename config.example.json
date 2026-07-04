@@ -1,0 +1,5 @@
+{
+  "oauth": {
+    "scope": "https://www.googleapis.com/auth/presentations"
+  }
+}

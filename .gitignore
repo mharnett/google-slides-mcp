@@ -122,3 +122,6 @@ dist/
 
 .DS_Store
 .idea
+
+# Per-user OAuth config (scope + local overrides). config.example.json IS committed.
+config.json

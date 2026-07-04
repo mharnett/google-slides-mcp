@@ -2,9 +2,22 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { google } from 'googleapis';
+import { readFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { checkEnvironmentVariables } from './utils/envCheck.js';
 import { getStartupErrorMessage } from './utils/errorHandler.js';
 import { setupToolHandlers } from './serverHandlers.js';
+import { logger } from './resilience.js';
+
+// Log build fingerprint at startup
+try {
+  const __dirname = dirname(fileURLToPath(import.meta.url));
+  const buildInfo = JSON.parse(readFileSync(join(__dirname, 'build-info.json'), 'utf-8'));
+  console.error(`[build] SHA: ${buildInfo.sha} (${buildInfo.builtAt})`);
+} catch {
+  // build-info.json not present (dev mode)
+}
 
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
@@ -39,7 +52,7 @@ const initializeAndRunServer = async () => {
 
     setupToolHandlers(server, slides);
 
-    server.onerror = (error: Error) => console.error('[MCP Server Error]', error);
+    server.onerror = (error: Error) => logger.error({ error }, '[MCP Server Error]');
 
     process.on('SIGINT', async () => {
       console.log('Received SIGINT, shutting down server...');
@@ -54,10 +67,10 @@ const initializeAndRunServer = async () => {
 
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    console.error('Google Slides MCP server running and connected via stdio.');
+    logger.info('Google Slides MCP server running and connected via stdio.');
   } catch (error: unknown) {
     const errorMessage = getStartupErrorMessage(error);
-    console.error('Failed to start Google Slides MCP server:', errorMessage, error);
+    logger.error({ error }, `Failed to start Google Slides MCP server: ${errorMessage}`);
     process.exit(1);
   }
 };
