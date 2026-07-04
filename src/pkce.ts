@@ -1,0 +1,27 @@
+// ============================================
+// PKCE (RFC 7636, S256) + canonical loopback redirect form.
+// ============================================
+// Shared by the runtime onboarding path (src/authCli.ts). The standalone
+// get-refresh-token.cjs helper carries a byte-identical copy of this logic
+// (it must ship self-contained, dependency-free), and a cross-drift test
+// (pkce-parity.test.mjs, repo root) asserts the two agree.
+
+import { createHash, randomBytes } from 'crypto';
+
+/** base64url with no padding (RFC 4648 §5). */
+export const base64url = (buf: Buffer): string =>
+  buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+/** 43-128 chars of the unreserved set. 32 random bytes -> 43 base64url chars. */
+export const generateCodeVerifier = (): string => base64url(randomBytes(32));
+
+/** code_challenge = base64url(SHA256(code_verifier)), S256. */
+export const computeCodeChallenge = (verifier: string): string =>
+  base64url(createHash('sha256').update(verifier, 'ascii').digest());
+
+// Canonical loopback redirect form shared by BOTH onboarding paths. Google
+// matches loopback redirect URIs on scheme + host + path and IGNORES the port,
+// so onboarders register ONE pattern: http://localhost/callback
+export const LOOPBACK_HOST = 'localhost';
+export const LOOPBACK_PATH = '/callback';
+export const buildLoopbackRedirectUri = (port: number): string => `http://${LOOPBACK_HOST}:${port}${LOOPBACK_PATH}`;
