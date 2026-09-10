@@ -1,0 +1,32 @@
+name: tests
+
+# This repo had no CI at all until 2026-09-10. The hermetic suite is build +
+# vitest only — no live Google OAuth call, no Keychain read: the OAuth
+# integration itself is out of scope for CI (see docs/reconciliation-2026-09.md),
+# same reason `npm run smoke` (scripts/healthcheck.sh) is not run here.
+#
+# `lint` is deliberately NOT part of this workflow: the repo currently has
+# ~338 pre-existing prettier/eslint findings (mostly CRLF line endings),
+# unrelated cleanup that would make this workflow red from its first run
+# for reasons having nothing to do with any given PR. Wiring lint in is a
+# separate, explicit task.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - run: npm test
